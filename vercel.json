@@ -1,0 +1,10 @@
+{
+  "cleanUrls": true,
+  "redirects": [
+    {
+      "source": "/images/:path*",
+      "destination": "https://cdn.jsdelivr.net/gh/MostafaAhmed71/mostafa-portfolio@main/images/:path*",
+      "permanent": false
+    }
+  ]
+}

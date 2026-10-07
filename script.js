@@ -148,23 +148,46 @@ document.querySelectorAll('a[href^="#"]').forEach((link) => {
 const filters = document.querySelectorAll(".filter");
 const cards = document.querySelectorAll(".grid .card");
 
+const search = document.getElementById("project-search");
+const projectCount = document.getElementById("project-count");
+const projectEmpty = document.getElementById("project-empty");
+let selectedFilter = "all";
+function normalizeSearch(value) {
+  return value.toLowerCase().normalize("NFKD").replace(/[\u064B-\u065F\u0670\u0300-\u036f]/g, "").replace(/[أإآ]/g, "ا").replace(/ى/g, "ي").trim();
+}
+function filterProjects() {
+  const query = normalizeSearch(search?.value || "");
+  let visible = 0;
+  cards.forEach((card) => {
+    const categories = (card.dataset.cat || "").split(/\s+/);
+    const show = (selectedFilter === "all" || categories.includes(selectedFilter)) && normalizeSearch(card.textContent || "").includes(query);
+    card.hidden = !show;
+    card.classList.toggle("is-off", !show);
+    if (show) { visible += 1; card.classList.add("is-in"); }
+  });
+  if (projectCount) projectCount.textContent = `عرض ${visible} من ${cards.length} مشروعًا`;
+  if (projectEmpty) projectEmpty.hidden = visible > 0;
+  onScroll();
+}
 filters.forEach((btn) => {
+  btn.setAttribute("aria-pressed", btn.classList.contains("is-on") ? "true" : "false");
   btn.addEventListener("click", () => {
-    const filter = btn.dataset.filter || "all";
+    selectedFilter = btn.dataset.filter || "all";
     filters.forEach((item) => {
       item.classList.toggle("is-on", item === btn);
-      item.setAttribute("aria-selected", item === btn ? "true" : "false");
+      item.setAttribute("aria-pressed", String(item === btn));
     });
-    cards.forEach((card) => {
-      const cats = (card.dataset.cat || "").split(/\s+/).filter(Boolean);
-      const show = filter === "all" || cats.includes(filter);
-      card.classList.toggle("is-off", !show);
-    });
+    filterProjects();
   });
 });
+search?.addEventListener("input", filterProjects);
+if (cards.length) filterProjects();
+let modalTrigger = null;
 
 function openStart(event) {
   event?.preventDefault();
+  if (!modal) return;
+  modalTrigger = event?.currentTarget || document.activeElement;
   closeNav();
   modal?.removeAttribute("hidden");
   document.body.style.overflow = "hidden";
@@ -173,8 +196,10 @@ function openStart(event) {
 }
 
 function closeStart() {
+  if (!modal || modal.hidden) return;
   modal?.setAttribute("hidden", "");
   document.body.style.overflow = "";
+  modalTrigger?.focus();
 }
 
 document.querySelectorAll("[data-open-start]").forEach((el) => {
@@ -189,6 +214,13 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
     closeNav();
     closeStart();
+  }
+  if (event.key === "Tab" && modal && !modal.hidden) {
+    const focusable = modal.querySelectorAll("button, input, select, textarea, a[href]");
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
   }
 });
 
